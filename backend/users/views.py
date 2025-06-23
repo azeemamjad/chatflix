@@ -8,6 +8,14 @@ from django.contrib.auth import get_user_model
 from .serializers import RequestOTPSerializer, VerifyOTPSerializer, RegisterUserSerializer
 from .utils import send_otp_email, generate_otp
 from django.core.files.base import ContentFile
+from rest_framework_simplejwt.tokens import RefreshToken
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
 
 User = get_user_model()
 
@@ -52,8 +60,12 @@ class VerifyOTPView(APIView):
                 user = User.objects.get(email=email)
                 if user.otp == otp:
                     if user.is_verified:
-                        # Login user
-                        return Response({"message": "Login successful.", "user_id": user.id}, status=status.HTTP_200_OK)
+                        tokens = get_tokens_for_user(user)
+                        return Response({
+                            "message": "Login successful.",
+                            "user_id": user.id,
+                            "tokens": tokens
+                        }, status=status.HTTP_200_OK)
                     else:
                         return Response({"message": "OTP verified. Please complete registration."}, status=status.HTTP_200_OK)
                 else:
@@ -81,7 +93,13 @@ class RegisterUserView(APIView):
                 if profile_picture:
                     user.profile_picture = profile_picture
                 user.save()
-                return Response({"message": "Registration successful. You are now logged in.", "user_id": user.id}, status=status.HTTP_201_CREATED)
+                tokens = get_tokens_for_user(user)
+                return Response({
+                    "message": "Registration successful. You are now logged in.",
+                    "user_id": user.id,
+                    "tokens": tokens
+                }, status=status.HTTP_201_CREATED)
             except User.DoesNotExist:
                 return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
