@@ -8,7 +8,6 @@ from django.utils import timezone
 class AppUser(AbstractUser):
     # Basic Profile Fields
     full_name = models.CharField(max_length=255)
-    phone_number = models.CharField(max_length=15, unique=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
     bio = models.TextField(blank=True, default="Hey there! I am using Django.")
     otp = models.CharField(max_length=6, blank=True, null=True)
