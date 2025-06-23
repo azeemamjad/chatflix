@@ -17,8 +17,6 @@ def send_otp_email(receiver_email, otp):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
 
-    print(sender_password)
-
     if not sender_email or not sender_password:
         print("OTP_EMAIL or OTP_PASSWORD environment variable not set.")
         return False

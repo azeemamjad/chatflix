@@ -9,7 +9,6 @@ from .serializers import RequestOTPSerializer, VerifyOTPSerializer, RegisterUser
 from .utils import send_otp_email, generate_otp
 from django.core.files.base import ContentFile
 from rest_framework_simplejwt.tokens import RefreshToken
-
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -43,7 +42,7 @@ class RequestOTPView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             otp = generate_otp()
-            user, created = User.objects.get_or_create(email=email, defaults={'username': email.split('@')[0]})
+            user, created = User.objects.get_or_create(email=email, username=email.split('@')[0])
             user.otp = otp
             user.save()
             send_otp_email(email, otp)
