@@ -11,6 +11,7 @@ class AppUser(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
     bio = models.TextField(blank=True, default="Hey there! I am using Django.")
+    otp = models.CharField(max_length=6, blank=True, null=True)
 
     # Status / Online Presence
     is_online = models.BooleanField(default=False)
