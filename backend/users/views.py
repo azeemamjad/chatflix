@@ -42,7 +42,7 @@ class RequestOTPView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             otp = generate_otp()
-            user, created = User.objects.get_or_create(email=email, username=email.split('@')[0])
+            user, created = User.objects.get_or_create(email=email)
             user.otp = otp
             user.save()
             send_otp_email(email, otp)

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "../components/Registration/AnimatedBackground";
 import GoogleSignUpButton from "../components/Registration/googleSignUpButton";
+import FourDotsLoader from "../components/Registration/FourDotsLoader";
 
 interface FormData {
   email: string;
@@ -26,6 +27,8 @@ const Register: React.FC = () => {
     profilePicture: null
   });
 
+  const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, files } = e.target as HTMLInputElement;
     setFormData(prev => ({
@@ -33,6 +36,31 @@ const Register: React.FC = () => {
       [name]: files ? files[0] : value
     }));
     setError(""); // Clear error when user starts typing
+  };
+
+  // Update OTP in both formData and otpArray
+  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
+    const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 1);
+    const newOtp = [...otpArray];
+    newOtp[idx] = val;
+    setOtpArray(newOtp);
+    setFormData(prev => ({
+      ...prev,
+      otp: newOtp.join("")
+    }));
+    setError("");
+    // Move focus to next box
+    if (val && idx < 5) {
+      const next = document.getElementById(`otp-box-${idx + 1}`);
+      if (next) (next as HTMLInputElement).focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
+    if (e.key === "Backspace" && !otpArray[idx] && idx > 0) {
+      const prev = document.getElementById(`otp-box-${idx - 1}`);
+      if (prev) (prev as HTMLInputElement).focus();
+    }
   };
 
   const handleRequestOTP = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -96,11 +124,10 @@ const Register: React.FC = () => {
 
       if (response.ok) {
         if (data.message.includes("Login successful")) {
-          // User already registered, redirect to home
           localStorage.setItem('user_id', data.user_id);
-          navigate('/home');
+          if (data.token) localStorage.setItem('token', data.token);
+          navigate('/');
         } else {
-          // New user, proceed to registration details
           setSuccess("OTP verified! Please complete your registration.");
           setCurrentStep('details');
         }
@@ -159,7 +186,8 @@ const Register: React.FC = () => {
 
   const handleGoogleSuccess = (userData: any) => {
     localStorage.setItem('user_id', userData.user_id);
-    navigate('/home');
+    if (userData.token) localStorage.setItem('token', userData.token);
+    navigate('/');
   };
 
   const renderEmailStep = () => (
@@ -179,7 +207,7 @@ const Register: React.FC = () => {
         disabled={loading}
         className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-md transition"
       >
-        {loading ? "Sending..." : "Send OTP"}
+        {loading ? <FourDotsLoader /> : "Send OTP"}
       </button>
     </form>
   );
@@ -191,23 +219,29 @@ const Register: React.FC = () => {
           Enter the 6-digit code sent to {formData.email}
         </p>
       </div>
-      <input
-        type="text"
-        name="otp"
-        placeholder="Enter 6-digit OTP"
-        value={formData.otp}
-        onChange={handleInputChange}
-        maxLength={6}
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400 text-center text-lg tracking-widest"
-        required
-        disabled={loading}
-      />
+      <div className="flex justify-center space-x-2 mb-2">
+        {otpArray.map((digit, idx) => (
+          <input
+            key={idx}
+            id={`otp-box-${idx}`}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={e => handleOtpChange(e, idx)}
+            onKeyDown={e => handleOtpKeyDown(e, idx)}
+            className="w-10 h-12 text-center text-xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
+            disabled={loading}
+            autoFocus={idx === 0}
+          />
+        ))}
+      </div>
       <button
         type="submit"
         disabled={loading}
         className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-md transition"
       >
-        {loading ? "Verifying..." : "Verify OTP"}
+        {loading ? <FourDotsLoader /> : "Verify OTP"}
       </button>
       <button
         type="button"
@@ -258,7 +292,7 @@ const Register: React.FC = () => {
         disabled={loading}
         className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-md transition"
       >
-        {loading ? "Creating Account..." : "Complete Registration"}
+        {loading ? <FourDotsLoader /> : "Creating Account..."}
       </button>
     </form>
   );
