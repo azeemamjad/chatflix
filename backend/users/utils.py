@@ -47,5 +47,6 @@ def generate_otp(length=6):
 if( __name__ == "__main__"):
     # Example usage
     otp = generate_otp()
+    print(otp)
     print(f"Generated OTP: {otp}")
     email_sent = send_otp_email("azeemamjad225@gmail.com", otp)

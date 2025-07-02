@@ -17,7 +17,17 @@ const Home: React.FC = () => {
           <span className="text-green-600 font-semibold">Your social movie night starts here!</span>
         </p>
         <button
-          onClick={() => navigate("/register")}
+          onClick={() => {
+            const token = localStorage.getItem('token');
+            if(token)
+            {
+              navigate("/chat")
+            }
+            else
+            {
+              navigate("/register")
+            }
+          }}
           className="bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 text-white px-8 py-3 rounded-full text-lg font-bold shadow-lg hover:scale-105 transition transform duration-200"
         >
           Get Started

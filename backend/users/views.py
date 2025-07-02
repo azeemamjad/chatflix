@@ -9,6 +9,14 @@ from .serializers import RequestOTPSerializer, VerifyOTPSerializer, RegisterUser
 from .utils import send_otp_email, generate_otp
 from django.core.files.base import ContentFile
 from rest_framework_simplejwt.tokens import RefreshToken
+
+#google auth related imports
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from urllib.parse import urlparse
+import requests
+
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -17,6 +25,8 @@ def get_tokens_for_user(user):
     }
 
 User = get_user_model()
+
+GOOGLE_CLIENT_ID = "619430419090-0efbe1i8fl0el6tc8jii8kh7d4hoce8d.apps.googleusercontent.com"
 
 class ProtectedView(APIView):
     permission_classes = [IsAuthenticated]
@@ -102,3 +112,49 @@ class RegisterUserView(APIView):
                 return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+class GoogleLoginView(APIView):
+    def post(self, request):
+        token = request.data.get("token")
+        if not token:
+            return Response({"error": "Token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token, google_requests.Request(), GOOGLE_CLIENT_ID
+            )
+
+            email = idinfo.get("email")
+            name = idinfo.get("name")
+            picture = idinfo.get("picture")
+
+            if not email:
+                return Response({"error": "Email not found in token."}, status=status.HTTP_400_BAD_REQUEST)
+
+            user, created = User.objects.get_or_create(email=email)
+
+            if created:
+                user.username = email.split("@")[0]
+                user.is_verified = True
+
+                try:
+                    image_content = requests.get(picture).content
+                    filename = urlparse(picture).path.split('/')[-1]
+                    user.profile_picture.save(filename, ContentFile(image_content), save=True)
+                except Exception as e:
+                    print("Profile picture save failed:", e)
+    
+                user.save()
+
+            tokens = get_tokens_for_user(user)
+
+            return Response({
+                "message": "Google login successful.",
+                "user_id": user.id,
+                "token": tokens['access'],
+                "refresh": tokens['refresh'],
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": "Invalid Google token", "details": str(e)}, status=status.HTTP_400_BAD_REQUEST)

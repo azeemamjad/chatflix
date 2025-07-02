@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "../components/Registration/AnimatedBackground";
 import GoogleSignUpButton from "../components/Registration/googleSignUpButton";
@@ -28,6 +28,13 @@ const Register: React.FC = () => {
   });
 
   const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/chat');
+    }
+  }, [navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, files } = e.target as HTMLInputElement;
@@ -125,8 +132,8 @@ const Register: React.FC = () => {
       if (response.ok) {
         if (data.message.includes("Login successful")) {
           localStorage.setItem('user_id', data.user_id);
-          if (data.token) localStorage.setItem('token', data.token);
-          navigate('/');
+          if (data.tokens.access) localStorage.setItem('token', data.tokens.access);
+          navigate('/chat');
         } else {
           setSuccess("OTP verified! Please complete your registration.");
           setCurrentStep('details');
@@ -171,8 +178,9 @@ const Register: React.FC = () => {
 
       if (response.ok) {
         localStorage.setItem('user_id', data.user_id);
+        if(data.tokens.access) { localStorage.setItem('token', data.tokens.access)}
         setSuccess("Registration successful! Redirecting...");
-        setTimeout(() => navigate('/home'), 2000);
+        setTimeout(() => navigate('/chat'), 2000);
       } else {
         setError(data.error || "Registration failed");
       }
@@ -184,11 +192,38 @@ const Register: React.FC = () => {
     }
   };
 
-  const handleGoogleSuccess = (userData: any) => {
-    localStorage.setItem('user_id', userData.user_id);
-    if (userData.token) localStorage.setItem('token', userData.token);
-    navigate('/');
-  };
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+  const token = credentialResponse.credential;
+  if (!token) {
+    setError("Google login failed: No token received.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const res = await fetch("http://localhost:8000/api/users/google-login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem("user_id", data.user_id);
+      localStorage.setItem("token", data.token);
+      setSuccess("Google login successful! Redirecting...");
+      setTimeout(() => navigate("/chat"), 1000);
+    } else {
+      setError(data.error || "Google login failed");
+    }
+  } catch (err) {
+    setError("Something went wrong during Google login.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const renderEmailStep = () => (
     <form onSubmit={handleRequestOTP} className="space-y-4">

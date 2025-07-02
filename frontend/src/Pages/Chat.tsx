@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 
+import { Button } from "@mui/material";
+import LogoutIcon from "@mui/icons-material/Logout";
+
 const dummyChats = [
   {
     id: 1,
@@ -95,6 +98,27 @@ const Chat: React.FC = () => {
             <div className="font-semibold">{selectedChat.name}</div>
             <div className="text-xs text-gray-500">Online</div>
           </div>
+          <Button
+            variant="contained"
+            color="error"
+            size="small"
+            startIcon={<LogoutIcon />}
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user_id");
+              window.location.href = "/register";
+            }}
+            sx={{
+              position: "absolute",
+              right: 24,
+              top: "4%",
+              transform: "translateY(-50%)",
+              fontWeight: 600,
+              letterSpacing: 1,
+            }}
+          >
+            Logout
+          </Button>
         </div>
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50">
